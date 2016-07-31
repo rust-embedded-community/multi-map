@@ -1,8 +1,9 @@
 [package]
 name = "multi-map"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["theJPster <github@thejpster.org.uk>"]
 description = "Like a std::collection::HashMap, but allows you to use either of two different keys to retrieve items."
 license = "MIT"
+repository = "https://github.com/thejpster/multi-map"
 
 [dependencies]
