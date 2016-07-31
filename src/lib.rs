@@ -1,3 +1,15 @@
+//! # multi-map
+//! MultiMap is a HashMap that takes two different keys.
+//!
+//! ```
+//! # extern crate multi_map;
+//! let mut map = multi_map::MultiMap::new();
+//! map.insert("One", "Eins", 1);
+//! map.insert("Two", "Zwei", 2);
+//! assert!(*map.get_alt(&"Eins").unwrap() == 1);
+//! assert!(*map.get(&"Two").unwrap() == 2);
+//! ```
+
 use std::collections::HashMap;
 use std::collections::hash_map::Iter;
 use std::hash::Hash;
