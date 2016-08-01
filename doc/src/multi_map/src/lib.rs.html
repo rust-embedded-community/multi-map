@@ -184,17 +184,101 @@
 <span id="140">140</span>
 <span id="141">141</span>
 <span id="142">142</span>
+<span id="143">143</span>
+<span id="144">144</span>
+<span id="145">145</span>
+<span id="146">146</span>
+<span id="147">147</span>
+<span id="148">148</span>
+<span id="149">149</span>
+<span id="150">150</span>
+<span id="151">151</span>
+<span id="152">152</span>
+<span id="153">153</span>
+<span id="154">154</span>
+<span id="155">155</span>
+<span id="156">156</span>
+<span id="157">157</span>
+<span id="158">158</span>
+<span id="159">159</span>
+<span id="160">160</span>
+<span id="161">161</span>
+<span id="162">162</span>
+<span id="163">163</span>
+<span id="164">164</span>
+<span id="165">165</span>
+<span id="166">166</span>
+<span id="167">167</span>
+<span id="168">168</span>
+<span id="169">169</span>
+<span id="170">170</span>
+<span id="171">171</span>
+<span id="172">172</span>
+<span id="173">173</span>
+<span id="174">174</span>
+<span id="175">175</span>
+<span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
+<span id="182">182</span>
+<span id="183">183</span>
+<span id="184">184</span>
+<span id="185">185</span>
+<span id="186">186</span>
+<span id="187">187</span>
+<span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! # multi-map</span>
-<span class='doccomment'>//! MultiMap is a HashMap that takes two different keys.</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! MultiMap is like a std::collection::HashMap, but allows you to use either of</span>
+<span class='doccomment'>//! two different keys to retrieve items.</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! The keys have two distinct types - `K1` and `K2` - which may be the same.</span>
+<span class='doccomment'>//! Accessing on the primary `K1` key is via the usual `get`, `get_mut` and</span>
+<span class='doccomment'>//! `remove_alt` methods, while accessing via the secondary `K2` key is via new</span>
+<span class='doccomment'>//! `get_alt`, `get_mut_alt` and `remove_alt` methods. The value is of type `V`.</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! Internally, two HashMaps are created - a main one on `&lt;K1, (K2,</span>
+<span class='doccomment'>//! V)&gt;` and a second one on `&lt;K2, K1&gt;`. The `(K2, V)` tuple is so</span>
+<span class='doccomment'>//! that when an item is removed using the `K1` key, the appropriate `K2`</span>
+<span class='doccomment'>//! value is available so the `K2-&gt;K1` map can be removed from the second</span>
+<span class='doccomment'>//! HashMap, to keep them in sync.</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! Using two HashMaps instead of one naturally brings a slight performance</span>
+<span class='doccomment'>//! and memory penalty. Notably, indexing by `K2` requires two HashMap lookups.</span>
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! ```</span>
 <span class='doccomment'>//! # extern crate multi_map;</span>
-<span class='doccomment'>//! let mut map = multi_map::MultiMap::new();</span>
-<span class='doccomment'>//! map.insert(&quot;One&quot;, &quot;Eins&quot;, 1);</span>
-<span class='doccomment'>//! map.insert(&quot;Two&quot;, &quot;Zwei&quot;, 2);</span>
-<span class='doccomment'>//! assert!(*map.get_alt(&amp;&quot;Eins&quot;).unwrap() == 1);</span>
+<span class='doccomment'>//! use multi_map::MultiMap;</span>
+<span class='doccomment'>//! # fn main() {</span>
+<span class='doccomment'>//! #[derive(Hash,Clone,PartialEq,Eq)]</span>
+<span class='doccomment'>//! enum ThingIndex {</span>
+<span class='doccomment'>//!     IndexOne,</span>
+<span class='doccomment'>//!     IndexTwo,</span>
+<span class='doccomment'>//!     IndexThree,</span>
+<span class='doccomment'>//! };</span>
+<span class='doccomment'>//! let mut map = MultiMap::new();</span>
+<span class='doccomment'>//! map.insert(&quot;One&quot;, ThingIndex::IndexOne, 1);</span>
+<span class='doccomment'>//! map.insert(&quot;Two&quot;, ThingIndex::IndexTwo, 2);</span>
+<span class='doccomment'>//! assert!(*map.get_alt(&amp;ThingIndex::IndexOne).unwrap() == 1);</span>
 <span class='doccomment'>//! assert!(*map.get(&amp;&quot;Two&quot;).unwrap() == 2);</span>
+<span class='doccomment'>//! assert!(map.remove_alt(&amp;ThingIndex::IndexTwo).unwrap() == 2);</span>
+<span class='doccomment'>//! # }</span>
 <span class='doccomment'>//! ```</span>
 
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>HashMap</span>;
@@ -208,6 +292,16 @@
 }
 
 <span class='kw'>impl</span><span class='op'>&lt;</span><span class='ident'>K1</span>: <span class='ident'>Eq</span> <span class='op'>+</span> <span class='ident'>Hash</span> <span class='op'>+</span> <span class='ident'>Clone</span>, <span class='ident'>K2</span>: <span class='ident'>Eq</span> <span class='op'>+</span> <span class='ident'>Hash</span> <span class='op'>+</span> <span class='ident'>Clone</span>, <span class='ident'>V</span><span class='op'>&gt;</span> <span class='ident'>MultiMap</span><span class='op'>&lt;</span><span class='ident'>K1</span>, <span class='ident'>K2</span>, <span class='ident'>V</span><span class='op'>&gt;</span> {
+    <span class='doccomment'>/// Creates a new MultiMap. The primary key is of type `K1` and the</span>
+    <span class='doccomment'>/// secondary key is of type `K2`. The value is of type `V`. This is as</span>
+    <span class='doccomment'>/// compared to a `std::collections::HashMap` which is typed on just `K` and</span>
+    <span class='doccomment'>/// `V`.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Internally, two HashMaps are created - a main one on `&lt;K1, (K2,</span>
+    <span class='doccomment'>/// V)&gt;` and a second one on `&lt;K2, K1&gt;`. The `(K2, V)` tuple is so</span>
+    <span class='doccomment'>/// that when an item is removed using the `K1` key, the appropriate `K2`</span>
+    <span class='doccomment'>/// value is available so the `K2-&gt;K1` map can be removed from the second</span>
+    <span class='doccomment'>/// HashMap, to keep them in sync.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>() <span class='op'>-&gt;</span> <span class='ident'>MultiMap</span><span class='op'>&lt;</span><span class='ident'>K1</span>, <span class='ident'>K2</span>, <span class='ident'>V</span><span class='op'>&gt;</span> {
         <span class='ident'>MultiMap</span> {
             <span class='ident'>value_map</span>: <span class='ident'>HashMap</span>::<span class='ident'>new</span>(),
@@ -215,11 +309,18 @@
         }
     }
 
+    <span class='doccomment'>/// Insert an item into the MultiMap. You must supply both keys to insert</span>
+    <span class='doccomment'>/// an item. The keys cannot be modified at a later date, so if you only</span>
+    <span class='doccomment'>/// have one key at this time, use a placeholder value for the second key</span>
+    <span class='doccomment'>/// (perhaps `K2` is `Option&lt;...&gt;`) and remove then re-insert when the</span>
+    <span class='doccomment'>/// second key becomes available.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>insert</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>key_one</span>: <span class='ident'>K1</span>, <span class='ident'>key_two</span>: <span class='ident'>K2</span>, <span class='ident'>value</span>: <span class='ident'>V</span>) {
         <span class='self'>self</span>.<span class='ident'>key_map</span>.<span class='ident'>insert</span>(<span class='ident'>key_two</span>.<span class='ident'>clone</span>(), <span class='ident'>key_one</span>.<span class='ident'>clone</span>());
         <span class='self'>self</span>.<span class='ident'>value_map</span>.<span class='ident'>insert</span>(<span class='ident'>key_one</span>, (<span class='ident'>key_two</span>, <span class='ident'>value</span>));
     }
 
+    <span class='doccomment'>/// Obtain a reference to an item in the MultiMap using the primary key,</span>
+    <span class='doccomment'>/// just like a HashMap.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>key</span>: <span class='kw-2'>&amp;</span><span class='ident'>K1</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>V</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>result</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
         <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>pair</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>value_map</span>.<span class='ident'>get</span>(<span class='ident'>key</span>) {
@@ -228,6 +329,8 @@
         <span class='ident'>result</span>
     }
 
+    <span class='doccomment'>/// Obtain a mutable reference to an item in the MultiMap using the</span>
+    <span class='doccomment'>/// primary key, just like a HashMap.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_mut</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>key</span>: <span class='kw-2'>&amp;</span><span class='ident'>K1</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>V</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>result</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
         <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>pair</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>value_map</span>.<span class='ident'>get_mut</span>(<span class='ident'>key</span>) {
@@ -236,6 +339,8 @@
         <span class='ident'>result</span>
     }
 
+    <span class='doccomment'>/// Obtain a reference to an item in the MultiMap using the secondary key.</span>
+    <span class='doccomment'>/// Ordinary HashMaps can&#39;t do this.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_alt</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>key</span>: <span class='kw-2'>&amp;</span><span class='ident'>K2</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>V</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>result</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
         <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>key_a</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>key_map</span>.<span class='ident'>get</span>(<span class='ident'>key</span>) {
@@ -246,6 +351,8 @@
         <span class='ident'>result</span>
     }
 
+    <span class='doccomment'>/// Obtain a mutable reference to an item in the MultiMap using the</span>
+    <span class='doccomment'>/// secondary key. Ordinary HashMaps can&#39;t do this.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>get_mut_alt</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>key</span>: <span class='kw-2'>&amp;</span><span class='ident'>K2</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>V</span><span class='op'>&gt;</span> {
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>result</span> <span class='op'>=</span> <span class='prelude-val'>None</span>;
         <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>key_a</span>) <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>key_map</span>.<span class='ident'>get</span>(<span class='ident'>key</span>) {
@@ -256,6 +363,9 @@
         <span class='ident'>result</span>
     }
 
+    <span class='doccomment'>/// Remove an item from the HashMap using the primary key. The value for the</span>
+    <span class='doccomment'>/// given key is returned (if it exists), just like a HashMap. This removes</span>
+    <span class='doccomment'>/// an item from the main HashMap, and the second `&lt;K2, K1&gt;` HashMap.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>remove</span><span class='op'>&lt;</span><span class='ident'>Q</span>: ?<span class='ident'>Sized</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>key</span>: <span class='kw-2'>&amp;</span><span class='ident'>Q</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>V</span><span class='op'>&gt;</span>
         <span class='kw'>where</span> <span class='ident'>K1</span>: <span class='ident'>Borrow</span><span class='op'>&lt;</span><span class='ident'>Q</span><span class='op'>&gt;</span>,
               <span class='ident'>Q</span>: <span class='ident'>Hash</span> <span class='op'>+</span> <span class='ident'>Eq</span>
@@ -268,6 +378,10 @@
         <span class='ident'>result</span>
     }
 
+    <span class='doccomment'>/// Remove an item from the HashMap using the secondary key. The value for</span>
+    <span class='doccomment'>/// the given key is returned (if it exists). Ordinary HashMaps can&#39;t do</span>
+    <span class='doccomment'>/// this. This removes an item from both the main HashMap and the second</span>
+    <span class='doccomment'>/// `&lt;K2, K1&gt;` HashMap.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>remove_alt</span><span class='op'>&lt;</span><span class='ident'>Q</span>: ?<span class='ident'>Sized</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>key</span>: <span class='kw-2'>&amp;</span><span class='ident'>Q</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='ident'>V</span><span class='op'>&gt;</span>
         <span class='kw'>where</span> <span class='ident'>K2</span>: <span class='ident'>Borrow</span><span class='op'>&lt;</span><span class='ident'>Q</span><span class='op'>&gt;</span>,
               <span class='ident'>Q</span>: <span class='ident'>Hash</span> <span class='op'>+</span> <span class='ident'>Eq</span>
@@ -281,6 +395,8 @@
         <span class='ident'>result</span>
     }
 
+    <span class='doccomment'>/// Iterate through all the values in the MultiMap. Note that the values</span>
+    <span class='doccomment'>/// are `(K2, V)` tuples, not `V`, as you would get with a HashMap.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>iter</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Iter</span><span class='op'>&lt;</span><span class='ident'>K1</span>, (<span class='ident'>K2</span>, <span class='ident'>V</span>)<span class='op'>&gt;</span> {
         <span class='self'>self</span>.<span class='ident'>value_map</span>.<span class='ident'>iter</span>()
     }
@@ -302,7 +418,7 @@
         <span class='macro'>assert</span><span class='macro'>!</span>(<span class='op'>*</span><span class='ident'>map</span>.<span class='ident'>get</span>(<span class='kw-2'>&amp;</span><span class='number'>2</span>).<span class='ident'>unwrap</span>() <span class='op'>==</span> <span class='ident'>String</span>::<span class='ident'>from</span>(<span class='string'>&quot;Zwei&quot;</span>));
         <span class='macro'>assert</span><span class='macro'>!</span>(<span class='op'>*</span><span class='ident'>map</span>.<span class='ident'>get</span>(<span class='kw-2'>&amp;</span><span class='number'>3</span>).<span class='ident'>unwrap</span>() <span class='op'>==</span> <span class='ident'>String</span>::<span class='ident'>from</span>(<span class='string'>&quot;Drei&quot;</span>));
 
-        <span class='ident'>map</span>.<span class='ident'>get_mut_alt</span>(<span class='kw-2'>&amp;</span><span class='string'>&quot;One&quot;</span>).<span class='ident'>expect</span>(<span class='string'>&quot;Weird&quot;</span>).<span class='ident'>push_str</span>(<span class='string'>&quot;s&quot;</span>);
+        <span class='ident'>map</span>.<span class='ident'>get_mut_alt</span>(<span class='kw-2'>&amp;</span><span class='string'>&quot;One&quot;</span>).<span class='ident'>unwrap</span>().<span class='ident'>push_str</span>(<span class='string'>&quot;s&quot;</span>);
 
         <span class='macro'>assert</span><span class='macro'>!</span>(<span class='op'>*</span><span class='ident'>map</span>.<span class='ident'>get_alt</span>(<span class='kw-2'>&amp;</span><span class='string'>&quot;One&quot;</span>).<span class='ident'>unwrap</span>() <span class='op'>==</span> <span class='ident'>String</span>::<span class='ident'>from</span>(<span class='string'>&quot;Eins&quot;</span>));
         <span class='macro'>assert</span><span class='macro'>!</span>(<span class='op'>*</span><span class='ident'>map</span>.<span class='ident'>get_alt</span>(<span class='kw-2'>&amp;</span><span class='string'>&quot;Two&quot;</span>).<span class='ident'>unwrap</span>() <span class='op'>==</span> <span class='ident'>String</span>::<span class='ident'>from</span>(<span class='string'>&quot;Zwei&quot;</span>));
@@ -318,7 +434,7 @@
         <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>map</span>.<span class='ident'>remove_alt</span>(<span class='kw-2'>&amp;</span><span class='string'>&quot;Three&quot;</span>) <span class='op'>==</span> <span class='prelude-val'>None</span>);
         <span class='macro'>assert</span><span class='macro'>!</span>(<span class='op'>*</span><span class='ident'>map</span>.<span class='ident'>remove_alt</span>(<span class='kw-2'>&amp;</span><span class='string'>&quot;One&quot;</span>).<span class='ident'>unwrap</span>() <span class='op'>==</span> <span class='ident'>String</span>::<span class='ident'>from</span>(<span class='string'>&quot;Eins&quot;</span>));
 
-        <span class='ident'>map</span>.<span class='ident'>get_mut</span>(<span class='kw-2'>&amp;</span><span class='number'>2</span>).<span class='ident'>expect</span>(<span class='string'>&quot;Weird?&quot;</span>).<span class='ident'>push_str</span>(<span class='string'>&quot;!&quot;</span>);
+        <span class='ident'>map</span>.<span class='ident'>get_mut</span>(<span class='kw-2'>&amp;</span><span class='number'>2</span>).<span class='ident'>unwrap</span>().<span class='ident'>push_str</span>(<span class='string'>&quot;!&quot;</span>);
 
         <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>map</span>.<span class='ident'>get</span>(<span class='kw-2'>&amp;</span><span class='number'>1</span>) <span class='op'>==</span> <span class='prelude-val'>None</span>);
         <span class='macro'>assert</span><span class='macro'>!</span>(<span class='op'>*</span><span class='ident'>map</span>.<span class='ident'>get</span>(<span class='kw-2'>&amp;</span><span class='number'>2</span>).<span class='ident'>unwrap</span>() <span class='op'>==</span> <span class='ident'>String</span>::<span class='ident'>from</span>(<span class='string'>&quot;Zwei!&quot;</span>));
@@ -326,7 +442,8 @@
         <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>map</span>.<span class='ident'>get</span>(<span class='kw-2'>&amp;</span><span class='number'>3</span>) <span class='op'>==</span> <span class='prelude-val'>None</span>);
 
     }
-}</pre>
+}
+</pre>
 </section>
     <section id='search' class="content hidden"></section>
 

@@ -47,17 +47,39 @@
                    <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                        [<span class='inner'>&#x2212;</span>]
                    </a>
-               </span><a id='src-0' class='srclink' href='../src/multi_map/src/lib.rs.html#1-142' title='goto source code'>[src]</a></span></h1>
+               </span><a id='src-0' class='srclink' href='../src/multi_map/src/lib.rs.html#1-200' title='goto source code'>[src]</a></span></h1>
 <div class='docblock'>
 <h1 id='multi-map' class='section-header'><a href='#multi-map'>multi-map</a></h1>
-<p>MultiMap is a HashMap that takes two different keys.</p>
+<p>MultiMap is like a std::collection::HashMap, but allows you to use either of
+two different keys to retrieve items.</p>
+
+<p>The keys have two distinct types - <code>K1</code> and <code>K2</code> - which may be the same.
+Accessing on the primary <code>K1</code> key is via the usual <code>get</code>, <code>get_mut</code> and
+<code>remove_alt</code> methods, while accessing via the secondary <code>K2</code> key is via new
+<code>get_alt</code>, <code>get_mut_alt</code> and <code>remove_alt</code> methods. The value is of type <code>V</code>.</p>
+
+<p>Internally, two HashMaps are created - a main one on <code>&lt;K1, (K2, V)&gt;</code> and a second one on <code>&lt;K2, K1&gt;</code>. The <code>(K2, V)</code> tuple is so
+that when an item is removed using the <code>K1</code> key, the appropriate <code>K2</code>
+value is available so the <code>K2-&gt;K1</code> map can be removed from the second
+HashMap, to keep them in sync.</p>
+
+<p>Using two HashMaps instead of one naturally brings a slight performance
+and memory penalty. Notably, indexing by <code>K2</code> requires two HashMap lookups.</p>
 
 <pre class='rust rust-example-rendered'>
-<span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>map</span> <span class='op'>=</span> <span class='ident'>multi_map</span>::<span class='ident'>MultiMap</span>::<span class='ident'>new</span>();
-<span class='ident'>map</span>.<span class='ident'>insert</span>(<span class='string'>&quot;One&quot;</span>, <span class='string'>&quot;Eins&quot;</span>, <span class='number'>1</span>);
-<span class='ident'>map</span>.<span class='ident'>insert</span>(<span class='string'>&quot;Two&quot;</span>, <span class='string'>&quot;Zwei&quot;</span>, <span class='number'>2</span>);
-<span class='macro'>assert</span><span class='macro'>!</span>(<span class='op'>*</span><span class='ident'>map</span>.<span class='ident'>get_alt</span>(<span class='kw-2'>&amp;</span><span class='string'>&quot;Eins&quot;</span>).<span class='ident'>unwrap</span>() <span class='op'>==</span> <span class='number'>1</span>);
-<span class='macro'>assert</span><span class='macro'>!</span>(<span class='op'>*</span><span class='ident'>map</span>.<span class='ident'>get</span>(<span class='kw-2'>&amp;</span><span class='string'>&quot;Two&quot;</span>).<span class='ident'>unwrap</span>() <span class='op'>==</span> <span class='number'>2</span>);</pre>
+<span class='kw'>use</span> <span class='ident'>multi_map</span>::<span class='ident'>MultiMap</span>;
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Hash</span>,<span class='ident'>Clone</span>,<span class='ident'>PartialEq</span>,<span class='ident'>Eq</span>)]</span>
+<span class='kw'>enum</span> <span class='ident'>ThingIndex</span> {
+    <span class='ident'>IndexOne</span>,
+    <span class='ident'>IndexTwo</span>,
+    <span class='ident'>IndexThree</span>,
+};
+<span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>map</span> <span class='op'>=</span> <span class='ident'>MultiMap</span>::<span class='ident'>new</span>();
+<span class='ident'>map</span>.<span class='ident'>insert</span>(<span class='string'>&quot;One&quot;</span>, <span class='ident'>ThingIndex</span>::<span class='ident'>IndexOne</span>, <span class='number'>1</span>);
+<span class='ident'>map</span>.<span class='ident'>insert</span>(<span class='string'>&quot;Two&quot;</span>, <span class='ident'>ThingIndex</span>::<span class='ident'>IndexTwo</span>, <span class='number'>2</span>);
+<span class='macro'>assert</span><span class='macro'>!</span>(<span class='op'>*</span><span class='ident'>map</span>.<span class='ident'>get_alt</span>(<span class='kw-2'>&amp;</span><span class='ident'>ThingIndex</span>::<span class='ident'>IndexOne</span>).<span class='ident'>unwrap</span>() <span class='op'>==</span> <span class='number'>1</span>);
+<span class='macro'>assert</span><span class='macro'>!</span>(<span class='op'>*</span><span class='ident'>map</span>.<span class='ident'>get</span>(<span class='kw-2'>&amp;</span><span class='string'>&quot;Two&quot;</span>).<span class='ident'>unwrap</span>() <span class='op'>==</span> <span class='number'>2</span>);
+<span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>map</span>.<span class='ident'>remove_alt</span>(<span class='kw-2'>&amp;</span><span class='ident'>ThingIndex</span>::<span class='ident'>IndexTwo</span>).<span class='ident'>unwrap</span>() <span class='op'>==</span> <span class='number'>2</span>);</pre>
 </div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
 <table>
                        <tr class=' module-item'>
