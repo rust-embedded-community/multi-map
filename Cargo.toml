@@ -5,5 +5,7 @@ authors = ["theJPster <github@thejpster.org.uk>"]
 description = "Like a std::collection::HashMap, but allows you to use either of two different keys to retrieve items."
 license = "MIT"
 repository = "https://github.com/thejpster/multi-map"
+documentation = "https://thejpster.github.io/multi-map/doc/multi_map/index.html"
+homepage = "https://thejpster.github.io/multi-map"
 
 [dependencies]
