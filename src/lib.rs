@@ -30,12 +30,12 @@
 //! };
 //!
 //! let mut map = MultiMap::new();
-//! map.insert("One", ThingIndex::IndexOne, 1);
-//! map.insert("Two", ThingIndex::IndexTwo, 2);
+//! map.insert(1, ThingIndex::IndexOne, "Chicken Fried Steak");
+//! map.insert(2, ThingIndex::IndexTwo, "Blueberry Pancakes");
 //!
-//! assert!(*map.get_alt(&ThingIndex::IndexOne).unwrap() == 1);
-//! assert!(*map.get(&"Two").unwrap() == 2);
-//! assert!(map.remove_alt(&ThingIndex::IndexTwo).unwrap() == 2);
+//! assert!(*map.get_alt(&ThingIndex::IndexOne).unwrap() == "Chicken Fried Steak");
+//! assert!(*map.get(&2).unwrap() == "Blueberry Pancakes");
+//! assert!(map.remove_alt(&ThingIndex::IndexTwo).unwrap() == "Blueberry Pancakes");
 //! # }
 //! ```
 
@@ -203,12 +203,12 @@ impl<K1: Eq + Hash + Debug, K2: Eq + Hash + Debug, V: Debug> fmt::Debug for Mult
 /// };
 ///
 /// let map = multimap!{
-///     "One", ThingIndex::IndexOne => 1,
-///     "Two", ThingIndex::IndexTwo => 2,
+///     1, ThingIndex::IndexOne => "Chicken Fried Steak",
+///     2, ThingIndex::IndexTwo => "Blueberry Pancakes",
 /// };
 ///
-/// assert!(*map.get_alt(&ThingIndex::IndexOne).unwrap() == 1);
-/// assert!(*map.get(&"Two").unwrap() == 2);
+/// assert!(*map.get_alt(&ThingIndex::IndexOne).unwrap() == "Chicken Fried Steak");
+/// assert!(*map.get(&2).unwrap() == "Blueberry Pancakes");
 /// # }
 /// ```
 macro_rules! multimap {
