@@ -43,7 +43,9 @@ use std::collections::HashMap;
 use std::collections::hash_map::Iter;
 use std::hash::Hash;
 use std::borrow::Borrow;
+use std::fmt::{self, Debug};
 
+#[derive(Eq)]
 pub struct MultiMap<K1: Eq + Hash, K2: Eq + Hash, V> {
     value_map: HashMap<K1, (K2, V)>,
     key_map: HashMap<K2, K1>,
@@ -170,6 +172,18 @@ impl<K1: Eq + Hash + Clone, K2: Eq + Hash + Clone, V> MultiMap<K1, K2, V> {
     }
 }
 
+impl<K1: Eq + Hash, K2: Eq + Hash, V: Eq> PartialEq for MultiMap<K1, K2, V> {
+    fn eq(&self, other: &MultiMap<K1, K2, V>) -> bool {
+        self.value_map.eq(&other.value_map)
+    }
+}
+
+impl<K1: Eq + Hash + Debug, K2: Eq + Hash + Debug, V: Debug> fmt::Debug for MultiMap<K1, K2, V> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_map().entries(self.value_map.iter().map(|(key_one, &(ref key_two, ref value))| ((key_one, key_two), value))).finish()
+    }
+}
+
 #[macro_export]
 /// Create a `MultiMap` from a list of key-value tuples
 ///
@@ -258,26 +272,36 @@ mod test {
     fn macro_test() {
         use ::MultiMap;
 
-        let _: MultiMap<i32, &str, String> = multimap!{};
+        let map: MultiMap<i32, &str, String> = MultiMap::new();
 
-        multimap!{
+        assert_eq!(map, multimap!{});
+
+        let mut map = MultiMap::new();
+        map.insert(1, "One", String::from("Eins"));
+
+        assert_eq!(map, multimap!{
             1, "One" => String::from("Eins"),
-        };
+        });
 
-        multimap!{
+        assert_eq!(map, multimap!{
             1, "One" => String::from("Eins")
-        };
+        });
 
-        multimap!{
+        let mut map = MultiMap::new();
+        map.insert(1, "One", String::from("Eins"));
+        map.insert(2, "Two", String::from("Zwei"));
+        map.insert(3, "Three", String::from("Drei"));
+
+        assert_eq!(map, multimap!{
             1, "One" => String::from("Eins"),
             2, "Two" => String::from("Zwei"),
             3, "Three" => String::from("Drei"),
-        };
+        });
 
-        multimap!{
+        assert_eq!(map, multimap!{
             1, "One" => String::from("Eins"),
             2, "Two" => String::from("Zwei"),
             3, "Three" => String::from("Drei")
-        };
+        });
     }
 }
