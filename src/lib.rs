@@ -1,6 +1,6 @@
 //! # multi-map
 //!
-//! MultiMap is like a std::collection::HashMap, but allows you to use either of
+//! `MultiMap` is like a `std::collection::HashMap`, but allows you to use either of
 //! two different keys to retrieve items.
 //!
 //! The keys have two distinct types - `K1` and `K2` - which may be the same.
@@ -8,18 +8,19 @@
 //! `remove_alt` methods, while accessing via the secondary `K2` key is via new
 //! `get_alt`, `get_mut_alt` and `remove_alt` methods. The value is of type `V`.
 //!
-//! Internally, two HashMaps are created - a main one on `<K1, (K2,
+//! Internally, two `HashMap`s are created - a main one on `<K1, (K2,
 //! V)>` and a second one on `<K2, K1>`. The `(K2, V)` tuple is so
 //! that when an item is removed using the `K1` key, the appropriate `K2`
 //! value is available so the `K2->K1` map can be removed from the second
-//! HashMap, to keep them in sync.
+//! `MultiMap`, to keep them in sync.
 //!
-//! Using two HashMaps instead of one naturally brings a slight performance
-//! and memory penalty. Notably, indexing by `K2` requires two HashMap lookups.
+//! Using two `HashMap`s instead of one naturally brings a slight performance
+//! and memory penalty. Notably, indexing by `K2` requires two `HashMap` lookups.
 //!
 //! ```
-//! # extern crate multi_map;
+//! extern crate multi_map;
 //! use multi_map::MultiMap;
+//!
 //! # fn main() {
 //! #[derive(Hash,Clone,PartialEq,Eq)]
 //! enum ThingIndex {
@@ -27,9 +28,11 @@
 //!     IndexTwo,
 //!     IndexThree,
 //! };
+//!
 //! let mut map = MultiMap::new();
 //! map.insert("One", ThingIndex::IndexOne, 1);
 //! map.insert("Two", ThingIndex::IndexTwo, 2);
+//!
 //! assert!(*map.get_alt(&ThingIndex::IndexOne).unwrap() == 1);
 //! assert!(*map.get(&"Two").unwrap() == 2);
 //! assert!(map.remove_alt(&ThingIndex::IndexTwo).unwrap() == 2);
@@ -40,7 +43,9 @@ use std::collections::HashMap;
 use std::collections::hash_map::Iter;
 use std::hash::Hash;
 use std::borrow::Borrow;
+use std::fmt::{self, Debug};
 
+#[derive(Eq)]
 pub struct MultiMap<K1: Eq + Hash, K2: Eq + Hash, V> {
     value_map: HashMap<K1, (K2, V)>,
     key_map: HashMap<K2, K1>,
@@ -61,6 +66,16 @@ impl<K1: Eq + Hash + Clone, K2: Eq + Hash + Clone, V> MultiMap<K1, K2, V> {
         MultiMap {
             value_map: HashMap::new(),
             key_map: HashMap::new(),
+        }
+    }
+
+    /// Creates an empty MultiMap with the specified capacity.
+    ///
+    /// The multi map will be able to hold at least `capacity` elements without reallocating. If `capacity` is 0, the multi map will not allocate.
+    pub fn with_capacity(capacity: usize) -> MultiMap<K1, K2, V> {
+        MultiMap {
+            value_map: HashMap::with_capacity(capacity),
+            key_map: HashMap::with_capacity(capacity),
         }
     }
 
@@ -99,7 +114,7 @@ impl<K1: Eq + Hash + Clone, K2: Eq + Hash + Clone, V> MultiMap<K1, K2, V> {
     pub fn get_alt(&self, key: &K2) -> Option<&V> {
         let mut result = None;
         if let Some(key_a) = self.key_map.get(key) {
-            if let Some(pair) = self.value_map.get(&key_a) {
+            if let Some(pair) = self.value_map.get(key_a) {
                 result = Some(&pair.1)
             }
         }
@@ -111,7 +126,7 @@ impl<K1: Eq + Hash + Clone, K2: Eq + Hash + Clone, V> MultiMap<K1, K2, V> {
     pub fn get_mut_alt(&mut self, key: &K2) -> Option<&mut V> {
         let mut result = None;
         if let Some(key_a) = self.key_map.get(key) {
-            if let Some(pair) = self.value_map.get_mut(&key_a) {
+            if let Some(pair) = self.value_map.get_mut(key_a) {
                 result = Some(&mut pair.1)
             }
         }
@@ -157,6 +172,62 @@ impl<K1: Eq + Hash + Clone, K2: Eq + Hash + Clone, V> MultiMap<K1, K2, V> {
     }
 }
 
+impl<K1: Eq + Hash, K2: Eq + Hash, V: Eq> PartialEq for MultiMap<K1, K2, V> {
+    fn eq(&self, other: &MultiMap<K1, K2, V>) -> bool {
+        self.value_map.eq(&other.value_map)
+    }
+}
+
+impl<K1: Eq + Hash + Debug, K2: Eq + Hash + Debug, V: Debug> fmt::Debug for MultiMap<K1, K2, V> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_map().entries(self.value_map.iter().map(|(key_one, &(ref key_two, ref value))| ((key_one, key_two), value))).finish()
+    }
+}
+
+#[macro_export]
+/// Create a `MultiMap` from a list of key-value tuples
+///
+/// ## Example
+///
+/// ```
+/// #[macro_use]
+/// extern crate multi_map;
+/// use multi_map::MultiMap;
+///
+/// # fn main() {
+/// #[derive(Hash,Clone,PartialEq,Eq)]
+/// enum ThingIndex {
+///     IndexOne,
+///     IndexTwo,
+///     IndexThree,
+/// };
+///
+/// let map = multimap!{
+///     "One", ThingIndex::IndexOne => 1,
+///     "Two", ThingIndex::IndexTwo => 2,
+/// };
+///
+/// assert!(*map.get_alt(&ThingIndex::IndexOne).unwrap() == 1);
+/// assert!(*map.get(&"Two").unwrap() == 2);
+/// # }
+/// ```
+macro_rules! multimap {
+    (@single $($x:tt)*) => (());
+    (@count $($rest:expr),*) => (<[()]>::len(&[$(multimap!(@single $rest)),*]));
+
+    ($($key1:expr, $key2:expr => $value:expr,)+) => { multimap!($($key1, $key2 => $value),+) };
+    ($($key1:expr, $key2:expr => $value:expr),*) => {
+        {
+            let _cap = multimap!(@count $($key1),*);
+            let mut _map = MultiMap::with_capacity(_cap);
+            $(
+                _map.insert($key1, $key2, $value);
+            )*
+            _map
+        }
+    };
+}
+
 mod test {
 
     #[test]
@@ -195,6 +266,42 @@ mod test {
         assert!(*map.get(&2).unwrap() == String::from("Zwei!"));
         assert!(map.get_alt(&"Three") == None);
         assert!(map.get(&3) == None);
+    }
 
+    #[test]
+    fn macro_test() {
+        use ::MultiMap;
+
+        let map: MultiMap<i32, &str, String> = MultiMap::new();
+
+        assert_eq!(map, multimap!{});
+
+        let mut map = MultiMap::new();
+        map.insert(1, "One", String::from("Eins"));
+
+        assert_eq!(map, multimap!{
+            1, "One" => String::from("Eins"),
+        });
+
+        assert_eq!(map, multimap!{
+            1, "One" => String::from("Eins")
+        });
+
+        let mut map = MultiMap::new();
+        map.insert(1, "One", String::from("Eins"));
+        map.insert(2, "Two", String::from("Zwei"));
+        map.insert(3, "Three", String::from("Drei"));
+
+        assert_eq!(map, multimap!{
+            1, "One" => String::from("Eins"),
+            2, "Two" => String::from("Zwei"),
+            3, "Three" => String::from("Drei"),
+        });
+
+        assert_eq!(map, multimap!{
+            1, "One" => String::from("Eins"),
+            2, "Two" => String::from("Zwei"),
+            3, "Three" => String::from("Drei")
+        });
     }
 }
