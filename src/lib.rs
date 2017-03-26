@@ -1,6 +1,6 @@
 //! # multi-map
 //!
-//! MultiMap is like a std::collection::HashMap, but allows you to use either of
+//! `MultiMap` is like a `std::collection::HashMap`, but allows you to use either of
 //! two different keys to retrieve items.
 //!
 //! The keys have two distinct types - `K1` and `K2` - which may be the same.
@@ -8,14 +8,14 @@
 //! `remove_alt` methods, while accessing via the secondary `K2` key is via new
 //! `get_alt`, `get_mut_alt` and `remove_alt` methods. The value is of type `V`.
 //!
-//! Internally, two HashMaps are created - a main one on `<K1, (K2,
+//! Internally, two `HashMap`s are created - a main one on `<K1, (K2,
 //! V)>` and a second one on `<K2, K1>`. The `(K2, V)` tuple is so
 //! that when an item is removed using the `K1` key, the appropriate `K2`
 //! value is available so the `K2->K1` map can be removed from the second
-//! HashMap, to keep them in sync.
+//! `MultiMap`, to keep them in sync.
 //!
-//! Using two HashMaps instead of one naturally brings a slight performance
-//! and memory penalty. Notably, indexing by `K2` requires two HashMap lookups.
+//! Using two `HashMap`s instead of one naturally brings a slight performance
+//! and memory penalty. Notably, indexing by `K2` requires two `HashMap` lookups.
 //!
 //! ```
 //! extern crate multi_map;
@@ -112,7 +112,7 @@ impl<K1: Eq + Hash + Clone, K2: Eq + Hash + Clone, V> MultiMap<K1, K2, V> {
     pub fn get_alt(&self, key: &K2) -> Option<&V> {
         let mut result = None;
         if let Some(key_a) = self.key_map.get(key) {
-            if let Some(pair) = self.value_map.get(&key_a) {
+            if let Some(pair) = self.value_map.get(key_a) {
                 result = Some(&pair.1)
             }
         }
@@ -124,7 +124,7 @@ impl<K1: Eq + Hash + Clone, K2: Eq + Hash + Clone, V> MultiMap<K1, K2, V> {
     pub fn get_mut_alt(&mut self, key: &K2) -> Option<&mut V> {
         let mut result = None;
         if let Some(key_a) = self.key_map.get(key) {
-            if let Some(pair) = self.value_map.get_mut(&key_a) {
+            if let Some(pair) = self.value_map.get_mut(key_a) {
                 result = Some(&mut pair.1)
             }
         }
@@ -171,7 +171,7 @@ impl<K1: Eq + Hash + Clone, K2: Eq + Hash + Clone, V> MultiMap<K1, K2, V> {
 }
 
 #[macro_export]
-/// Create a MultiMap from a list of key-value tuples
+/// Create a `MultiMap` from a list of key-value tuples
 ///
 /// ## Example
 ///
