@@ -18,8 +18,9 @@
 //! and memory penalty. Notably, indexing by `K2` requires two HashMap lookups.
 //!
 //! ```
-//! # extern crate multi_map;
+//! extern crate multi_map;
 //! use multi_map::MultiMap;
+//!
 //! # fn main() {
 //! #[derive(Hash,Clone,PartialEq,Eq)]
 //! enum ThingIndex {
@@ -27,9 +28,11 @@
 //!     IndexTwo,
 //!     IndexThree,
 //! };
+//!
 //! let mut map = MultiMap::new();
 //! map.insert("One", ThingIndex::IndexOne, 1);
 //! map.insert("Two", ThingIndex::IndexTwo, 2);
+//!
 //! assert!(*map.get_alt(&ThingIndex::IndexOne).unwrap() == 1);
 //! assert!(*map.get(&"Two").unwrap() == 2);
 //! assert!(map.remove_alt(&ThingIndex::IndexTwo).unwrap() == 2);
@@ -61,6 +64,16 @@ impl<K1: Eq + Hash + Clone, K2: Eq + Hash + Clone, V> MultiMap<K1, K2, V> {
         MultiMap {
             value_map: HashMap::new(),
             key_map: HashMap::new(),
+        }
+    }
+
+    /// Creates an empty MultiMap with the specified capacity.
+    ///
+    /// The multi map will be able to hold at least `capacity` elements without reallocating. If `capacity` is 0, the multi map will not allocate.
+    pub fn with_capacity(capacity: usize) -> MultiMap<K1, K2, V> {
+        MultiMap {
+            value_map: HashMap::with_capacity(capacity),
+            key_map: HashMap::with_capacity(capacity),
         }
     }
 
@@ -157,6 +170,50 @@ impl<K1: Eq + Hash + Clone, K2: Eq + Hash + Clone, V> MultiMap<K1, K2, V> {
     }
 }
 
+#[macro_export]
+/// Create a MultiMap from a list of key-value tuples
+///
+/// ## Example
+///
+/// ```
+/// #[macro_use]
+/// extern crate multi_map;
+/// use multi_map::MultiMap;
+///
+/// # fn main() {
+/// #[derive(Hash,Clone,PartialEq,Eq)]
+/// enum ThingIndex {
+///     IndexOne,
+///     IndexTwo,
+///     IndexThree,
+/// };
+///
+/// let map = multimap!{
+///     "One", ThingIndex::IndexOne => 1,
+///     "Two", ThingIndex::IndexTwo => 2,
+/// };
+///
+/// assert!(*map.get_alt(&ThingIndex::IndexOne).unwrap() == 1);
+/// assert!(*map.get(&"Two").unwrap() == 2);
+/// # }
+/// ```
+macro_rules! multimap {
+    (@single $($x:tt)*) => (());
+    (@count $($rest:expr),*) => (<[()]>::len(&[$(multimap!(@single $rest)),*]));
+
+    ($($key1:expr, $key2:expr => $value:expr,)+) => { multimap!($($key1, $key2 => $value),+) };
+    ($($key1:expr, $key2:expr => $value:expr),*) => {
+        {
+            let _cap = multimap!(@count $($key1),*);
+            let mut _map = MultiMap::with_capacity(_cap);
+            $(
+                _map.insert($key1, $key2, $value);
+            )*
+            _map
+        }
+    };
+}
+
 mod test {
 
     #[test]
@@ -195,6 +252,32 @@ mod test {
         assert!(*map.get(&2).unwrap() == String::from("Zwei!"));
         assert!(map.get_alt(&"Three") == None);
         assert!(map.get(&3) == None);
+    }
 
+    #[test]
+    fn macro_test() {
+        use ::MultiMap;
+
+        let _: MultiMap<i32, &str, String> = multimap!{};
+
+        multimap!{
+            1, "One" => String::from("Eins"),
+        };
+
+        multimap!{
+            1, "One" => String::from("Eins")
+        };
+
+        multimap!{
+            1, "One" => String::from("Eins"),
+            2, "Two" => String::from("Zwei"),
+            3, "Three" => String::from("Drei"),
+        };
+
+        multimap!{
+            1, "One" => String::from("Eins"),
+            2, "Two" => String::from("Zwei"),
+            3, "Three" => String::from("Drei")
+        };
     }
 }
