@@ -39,11 +39,11 @@
 //! # }
 //! ```
 
-use std::collections::HashMap;
-use std::collections::hash_map::Iter;
-use std::hash::Hash;
 use std::borrow::Borrow;
+use std::collections::hash_map::Iter;
+use std::collections::HashMap;
 use std::fmt::{self, Debug};
+use std::hash::Hash;
 
 #[derive(Eq)]
 pub struct MultiMap<K1: Eq + Hash, K2: Eq + Hash, V> {
@@ -137,8 +137,9 @@ impl<K1: Eq + Hash + Clone, K2: Eq + Hash + Clone, V> MultiMap<K1, K2, V> {
     /// given key is returned (if it exists), just like a HashMap. This removes
     /// an item from the main HashMap, and the second `<K2, K1>` HashMap.
     pub fn remove<Q: ?Sized>(&mut self, key: &Q) -> Option<V>
-        where K1: Borrow<Q>,
-              Q: Hash + Eq
+    where
+        K1: Borrow<Q>,
+        Q: Hash + Eq,
     {
         let mut result = None;
         if let Some(pair) = self.value_map.remove(key) {
@@ -153,8 +154,9 @@ impl<K1: Eq + Hash + Clone, K2: Eq + Hash + Clone, V> MultiMap<K1, K2, V> {
     /// this. This removes an item from both the main HashMap and the second
     /// `<K2, K1>` HashMap.
     pub fn remove_alt<Q: ?Sized>(&mut self, key: &Q) -> Option<V>
-        where K2: Borrow<Q>,
-              Q: Hash + Eq
+    where
+        K2: Borrow<Q>,
+        Q: Hash + Eq,
     {
         let mut result = None;
         if let Some(key_a) = self.key_map.remove(key) {
@@ -180,7 +182,13 @@ impl<K1: Eq + Hash, K2: Eq + Hash, V: Eq> PartialEq for MultiMap<K1, K2, V> {
 
 impl<K1: Eq + Hash + Debug, K2: Eq + Hash + Debug, V: Debug> fmt::Debug for MultiMap<K1, K2, V> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_map().entries(self.value_map.iter().map(|(key_one, &(ref key_two, ref value))| ((key_one, key_two), value))).finish()
+        f.debug_map()
+            .entries(
+                self.value_map
+                    .iter()
+                    .map(|(key_one, &(ref key_two, ref value))| ((key_one, key_two), value)),
+            )
+            .finish()
     }
 }
 
@@ -232,7 +240,7 @@ mod test {
 
     #[test]
     fn big_test() {
-        use ::MultiMap;
+        use MultiMap;
 
         let mut map = MultiMap::new();
 
@@ -270,38 +278,50 @@ mod test {
 
     #[test]
     fn macro_test() {
-        use ::MultiMap;
+        use MultiMap;
 
         let map: MultiMap<i32, &str, String> = MultiMap::new();
 
-        assert_eq!(map, multimap!{});
+        assert_eq!(map, multimap! {});
 
         let mut map = MultiMap::new();
         map.insert(1, "One", String::from("Eins"));
 
-        assert_eq!(map, multimap!{
-            1, "One" => String::from("Eins"),
-        });
+        assert_eq!(
+            map,
+            multimap! {
+                1, "One" => String::from("Eins"),
+            }
+        );
 
-        assert_eq!(map, multimap!{
-            1, "One" => String::from("Eins")
-        });
+        assert_eq!(
+            map,
+            multimap! {
+                1, "One" => String::from("Eins")
+            }
+        );
 
         let mut map = MultiMap::new();
         map.insert(1, "One", String::from("Eins"));
         map.insert(2, "Two", String::from("Zwei"));
         map.insert(3, "Three", String::from("Drei"));
 
-        assert_eq!(map, multimap!{
-            1, "One" => String::from("Eins"),
-            2, "Two" => String::from("Zwei"),
-            3, "Three" => String::from("Drei"),
-        });
+        assert_eq!(
+            map,
+            multimap! {
+                1, "One" => String::from("Eins"),
+                2, "Two" => String::from("Zwei"),
+                3, "Three" => String::from("Drei"),
+            }
+        );
 
-        assert_eq!(map, multimap!{
-            1, "One" => String::from("Eins"),
-            2, "Two" => String::from("Zwei"),
-            3, "Three" => String::from("Drei")
-        });
+        assert_eq!(
+            map,
+            multimap! {
+                1, "One" => String::from("Eins"),
+                2, "Two" => String::from("Zwei"),
+                3, "Three" => String::from("Drei")
+            }
+        );
     }
 }
