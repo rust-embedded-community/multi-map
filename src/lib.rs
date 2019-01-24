@@ -39,11 +39,11 @@
 //! # }
 //! ```
 
-use std::collections::HashMap;
-use std::collections::hash_map::Iter;
-use std::hash::Hash;
 use std::borrow::Borrow;
+use std::collections::hash_map::Iter;
+use std::collections::HashMap;
 use std::fmt::{self, Debug};
+use std::hash::Hash;
 
 #[derive(Eq)]
 pub struct MultiMap<K1: Eq + Hash, K2: Eq + Hash, V> {
@@ -137,8 +137,9 @@ impl<K1: Eq + Hash + Clone, K2: Eq + Hash + Clone, V> MultiMap<K1, K2, V> {
     /// given key is returned (if it exists), just like a HashMap. This removes
     /// an item from the main HashMap, and the second `<K2, K1>` HashMap.
     pub fn remove<Q: ?Sized>(&mut self, key: &Q) -> Option<V>
-        where K1: Borrow<Q>,
-              Q: Hash + Eq
+    where
+        K1: Borrow<Q>,
+        Q: Hash + Eq,
     {
         let mut result = None;
         if let Some(pair) = self.value_map.remove(key) {
@@ -148,13 +149,68 @@ impl<K1: Eq + Hash + Clone, K2: Eq + Hash + Clone, V> MultiMap<K1, K2, V> {
         result
     }
 
+    /// Returns true if the map contains a value for the specified key. The key may be any borrowed
+    /// form of the map's key type, but Hash and Eq on the borrowed form must match those for the
+    /// key type
+    ///
+    /// ## Example
+    /// ```
+    /// #[macro_use]
+    /// extern crate multi_map;
+    /// use multi_map::MultiMap;
+    /// # fn main() {
+    /// let map = multimap! {
+    ///     1, "One" => String::from("Eins"),
+    ///     2, "Two" => String::from("Zwei"),
+    ///     3, "Three" => String::from("Drei"),
+    /// };
+    /// assert!(map.contains_key(&1));
+    /// assert!(!map.contains_key(&4));
+    /// # }
+    /// ```
+    pub fn contains_key<Q: ?Sized>(&self, key: &Q) -> bool
+    where
+        K1: Borrow<Q>,
+        Q: Hash + Eq,
+    {
+        self.value_map.contains_key(key)
+    }
+
+    /// Returns true if the map contains a value for the specified alternative key. The key may be
+    /// any borrowed form of the map's key type, but Hash and Eq on the borrowed form must match
+    /// those for the key type
+    ///
+    /// ## Example
+    /// ```
+    /// #[macro_use]
+    /// extern crate multi_map;
+    /// use multi_map::MultiMap;
+    /// # fn main() {
+    /// let map = multimap! {
+    ///     1, "One" => String::from("Eins"),
+    ///     2, "Two" => String::from("Zwei"),
+    ///     3, "Three" => String::from("Drei"),
+    /// };
+    /// assert!(map.contains_key_alt(&"One"));
+    /// assert!(!map.contains_key_alt(&"Four"));
+    /// # }
+    /// ```
+    pub fn contains_key_alt<Q: ?Sized>(&self, key: &Q) -> bool
+    where
+        K2: Borrow<Q>,
+        Q: Hash + Eq,
+    {
+        self.key_map.contains_key(key)
+    }
+
     /// Remove an item from the HashMap using the secondary key. The value for
     /// the given key is returned (if it exists). Ordinary HashMaps can't do
     /// this. This removes an item from both the main HashMap and the second
     /// `<K2, K1>` HashMap.
     pub fn remove_alt<Q: ?Sized>(&mut self, key: &Q) -> Option<V>
-        where K2: Borrow<Q>,
-              Q: Hash + Eq
+    where
+        K2: Borrow<Q>,
+        Q: Hash + Eq,
     {
         let mut result = None;
         if let Some(key_a) = self.key_map.remove(key) {
@@ -180,7 +236,13 @@ impl<K1: Eq + Hash, K2: Eq + Hash, V: Eq> PartialEq for MultiMap<K1, K2, V> {
 
 impl<K1: Eq + Hash + Debug, K2: Eq + Hash + Debug, V: Debug> fmt::Debug for MultiMap<K1, K2, V> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_map().entries(self.value_map.iter().map(|(key_one, &(ref key_two, ref value))| ((key_one, key_two), value))).finish()
+        f.debug_map()
+            .entries(
+                self.value_map
+                    .iter()
+                    .map(|(key_one, &(ref key_two, ref value))| ((key_one, key_two), value)),
+            )
+            .finish()
     }
 }
 
@@ -232,7 +294,7 @@ mod test {
 
     #[test]
     fn big_test() {
-        use ::MultiMap;
+        use MultiMap;
 
         let mut map = MultiMap::new();
 
@@ -243,6 +305,10 @@ mod test {
         assert!(*map.get(&1).unwrap() == String::from("Ein"));
         assert!(*map.get(&2).unwrap() == String::from("Zwei"));
         assert!(*map.get(&3).unwrap() == String::from("Drei"));
+        assert!(map.contains_key(&1));
+        assert!(!map.contains_key(&4));
+        assert!(map.contains_key_alt(&"One"));
+        assert!(!map.contains_key_alt(&"Four"));
 
         map.get_mut_alt(&"One").unwrap().push_str("s");
 
@@ -270,38 +336,50 @@ mod test {
 
     #[test]
     fn macro_test() {
-        use ::MultiMap;
+        use MultiMap;
 
         let map: MultiMap<i32, &str, String> = MultiMap::new();
 
-        assert_eq!(map, multimap!{});
+        assert_eq!(map, multimap! {});
 
         let mut map = MultiMap::new();
         map.insert(1, "One", String::from("Eins"));
 
-        assert_eq!(map, multimap!{
-            1, "One" => String::from("Eins"),
-        });
+        assert_eq!(
+            map,
+            multimap! {
+                1, "One" => String::from("Eins"),
+            }
+        );
 
-        assert_eq!(map, multimap!{
-            1, "One" => String::from("Eins")
-        });
+        assert_eq!(
+            map,
+            multimap! {
+                1, "One" => String::from("Eins")
+            }
+        );
 
         let mut map = MultiMap::new();
         map.insert(1, "One", String::from("Eins"));
         map.insert(2, "Two", String::from("Zwei"));
         map.insert(3, "Three", String::from("Drei"));
 
-        assert_eq!(map, multimap!{
-            1, "One" => String::from("Eins"),
-            2, "Two" => String::from("Zwei"),
-            3, "Three" => String::from("Drei"),
-        });
+        assert_eq!(
+            map,
+            multimap! {
+                1, "One" => String::from("Eins"),
+                2, "Two" => String::from("Zwei"),
+                3, "Three" => String::from("Drei"),
+            }
+        );
 
-        assert_eq!(map, multimap!{
-            1, "One" => String::from("Eins"),
-            2, "Two" => String::from("Zwei"),
-            3, "Three" => String::from("Drei")
-        });
+        assert_eq!(
+            map,
+            multimap! {
+                1, "One" => String::from("Eins"),
+                2, "Two" => String::from("Zwei"),
+                3, "Three" => String::from("Drei")
+            }
+        );
     }
 }
