@@ -40,7 +40,7 @@
 //! ```
 
 use std::borrow::Borrow;
-use std::collections::hash_map::Iter;
+use std::collections::hash_map;
 use std::collections::HashMap;
 use std::fmt::{self, Debug};
 use std::hash::Hash;
@@ -221,10 +221,13 @@ impl<K1: Eq + Hash + Clone, K2: Eq + Hash + Clone, V> MultiMap<K1, K2, V> {
         result
     }
 
-    /// Iterate through all the values in the MultiMap. Note that the values
+    /// Iterate through all the values in the MultiMap in random order.
+    /// Note that the values
     /// are `(K2, V)` tuples, not `V`, as you would get with a HashMap.
-    pub fn iter(&self) -> Iter<K1, (K2, V)> {
-        self.value_map.iter()
+    pub fn iter(&self) -> Iter<'_, K1, K2, V> {
+        Iter {
+            base: self.value_map.iter(),
+        }
     }
 }
 
@@ -255,6 +258,94 @@ where
     #[inline]
     fn default() -> MultiMap<K1, K2, V> {
         MultiMap::new()
+    }
+}
+
+/// An iterator over the entries of a `MultiMap` like in a `HashMap` but with
+/// values of the form (K2, V) instead of V.
+///
+///
+/// This `struct` is created by the [`iter`] method on [`MultiMap`]. See its
+/// documentation for more.
+///
+#[derive(Clone, Debug)]
+pub struct Iter<'a, K1: 'a, K2: 'a, V: 'a> {
+    base: hash_map::Iter<'a, K1, (K2, V)>,
+}
+
+/// An owning iterator over the entries of a `MultiMap`.
+///
+/// This `struct` is created by the [`into_iter`] method on [`MultiMap`]
+/// (provided by the `IntoIterator` trait). See its documentation for more.
+///
+pub struct IntoIter<K1, K2, V> {
+    base: hash_map::IntoIter<K1, (K2, V)>,
+}
+// TODO: `HashMap` also implements this, do we need this as well?
+// impl<K, V> IntoIter<K, V> {
+//     /// Returns a iterator of references over the remaining items.
+//     #[inline]
+//     pub(super) fn iter(&self) -> Iter<'_, K, V> {
+//         Iter { base: self.base.rustc_iter() }
+//     }
+// }
+
+impl<K1, K2, V> IntoIterator for MultiMap<K1, K2, V>
+where
+    K1: Eq + Hash + Debug,
+    K2: Eq + Hash + Debug,
+    V: Debug,
+{
+    type Item = (K1, (K2, V));
+    type IntoIter = IntoIter<K1, K2, V>;
+
+    /// Creates a consuming iterator, that is, one that moves each key-value
+    /// pair out of the map in arbitrary order. The map cannot be used after
+    /// calling this.
+    ///
+    fn into_iter(self) -> IntoIter<K1, K2, V> {
+        IntoIter {
+            base: self.value_map.into_iter(),
+        }
+    }
+}
+
+impl<'a, K1, K2, V> IntoIterator for &'a MultiMap<K1, K2, V>
+where
+    K1: Eq + Hash + Debug + Clone,
+    K2: Eq + Hash + Debug + Clone,
+    V: Debug,
+{
+    type Item = (&'a K1, &'a (K2, V));
+    type IntoIter = Iter<'a, K1, K2, V>;
+
+    fn into_iter(self) -> Iter<'a, K1, K2, V> {
+        self.iter()
+    }
+}
+
+impl<'a, K1, K2, V> Iterator for Iter<'a, K1, K2, V> {
+    type Item = (&'a K1, &'a (K2, V));
+
+    fn next(&mut self) -> Option<(&'a K1, &'a (K2, V))> {
+        self.base.next()
+    }
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.base.size_hint()
+    }
+}
+
+impl<K1, K2, V> Iterator for IntoIter<K1, K2, V> {
+    type Item = (K1, (K2, V));
+
+    #[inline]
+    fn next(&mut self) -> Option<(K1, (K2, V))> {
+        self.base.next()
+    }
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.base.size_hint()
     }
 }
 
@@ -344,6 +435,48 @@ mod test {
         assert!(*map.get(&2).unwrap() == String::from("Zwei!"));
         assert!(map.get_alt(&"Three") == None);
         assert!(map.get(&3) == None);
+    }
+    #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
+    struct MultiCount<'a>(i32, &'a str, &'a str);
+    #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
+    struct MultiCountOwned(i32, String, String);
+
+    #[test]
+    fn into_iter_test() {
+        use MultiMap;
+        let mut map = MultiMap::new();
+
+        map.insert(1, "One", String::from("Eins"));
+        map.insert(2, "Two", String::from("Zwei"));
+        map.insert(3, "Three", String::from("Drei"));
+
+        let mut vec_borrow = Vec::new();
+        for (k1, (k2, v)) in &map {
+            vec_borrow.push(MultiCount(*k1, *k2, v));
+        }
+        vec_borrow.sort();
+        assert_eq!(
+            vec_borrow,
+            vec!(
+                MultiCount(1, "One", "Eins"),
+                MultiCount(2, "Two", "Zwei"),
+                MultiCount(3, "Three", "Drei")
+            )
+        );
+
+        let mut vec_owned = Vec::new();
+        for (k1, (k2, v)) in map {
+            vec_owned.push(MultiCountOwned(k1, String::from(k2), v));
+        }
+        vec_owned.sort();
+        assert_eq!(
+            vec_owned,
+            vec!(
+                MultiCountOwned(1, String::from("One"), String::from("Eins")),
+                MultiCountOwned(2, String::from("Two"), String::from("Zwei")),
+                MultiCountOwned(3, String::from("Three"), String::from("Drei"))
+            )
+        )
     }
 
     #[test]
