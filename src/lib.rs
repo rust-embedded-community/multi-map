@@ -249,6 +249,18 @@ impl<K1: Eq + Hash + Debug, K2: Eq + Hash + Debug, V: Debug> fmt::Debug for Mult
     }
 }
 
+impl<K1, K2, V> Default for MultiMap<K1, K2, V>
+where
+    K1: Eq + Hash + Clone,
+    K2: Eq + Hash + Clone,
+{
+    /// Creates an empty `MultiMap<K1, K2, V>`
+    #[inline]
+    fn default() -> MultiMap<K1, K2, V> {
+        MultiMap::new()
+    }
+}
+
 /// An iterator over the entries of a `MultiMap` like in a `HashMap` but with
 /// values of the form (K2, V) instead of V.
 ///
@@ -336,6 +348,7 @@ impl<K1, K2, V> Iterator for IntoIter<K1, K2, V> {
         self.base.size_hint()
     }
 }
+
 #[macro_export]
 /// Create a `MultiMap` from a list of key-value tuples
 ///
