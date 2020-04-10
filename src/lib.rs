@@ -246,6 +246,18 @@ impl<K1: Eq + Hash + Debug, K2: Eq + Hash + Debug, V: Debug> fmt::Debug for Mult
     }
 }
 
+impl<K1, K2, V> Default for MultiMap<K1, K2, V>
+where
+    K1: Eq + Hash + Clone,
+    K2: Eq + Hash + Clone,
+{
+    /// Creates an empty `MultiMap<K1, K2, V>`.
+    #[inline]
+    fn default() -> MultiMap<K1, K2, V> {
+        MultiMap::new()
+    }
+}
+
 #[macro_export]
 /// Create a `MultiMap` from a list of key-value tuples
 ///
