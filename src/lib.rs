@@ -251,7 +251,7 @@ where
     K1: Eq + Hash + Clone,
     K2: Eq + Hash + Clone,
 {
-    /// Creates an empty `MultiMap<K1, K2, V>`.
+    /// Creates an empty `MultiMap<K1, K2, V>`
     #[inline]
     fn default() -> MultiMap<K1, K2, V> {
         MultiMap::new()
