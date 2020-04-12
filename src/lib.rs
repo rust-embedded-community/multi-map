@@ -40,31 +40,30 @@
 //! ```
 
 #[cfg(feature = "serde")]
-extern crate serde;
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-
 use std::borrow::Borrow;
 use std::collections::hash_map;
 use std::collections::HashMap;
 use std::fmt::{self, Debug};
 use std::hash::Hash;
 
-#[cfg(feature = "serde")]
-#[derive(Eq, Serialize, Deserialize)]
-#[serde(from = "HashMap<K1, (K2, V)>")]
+#[cfg_attr(
+    feature = "serde",
+    derive(Deserialize, Serialize),
+    serde(from = "HashMap<K1, (K2, V)>")
+)]
+#[derive(Eq)]
 pub struct MultiMap<K1, K2, V>
 where
     K1: Eq + Hash + Clone,
     K2: Eq + Hash + Clone,
 {
-    #[serde(flatten)]
+    #[cfg_attr(feature = "serde", serde(flatten))]
     value_map: HashMap<K1, (K2, V)>,
-    #[serde(skip)]
+    #[cfg_attr(feature = "serde", serde(skip))]
     key_map: HashMap<K2, K1>,
 }
 
-#[cfg(feature = "serde")]
 impl<K1, K2, V> From<HashMap<K1, (K2, V)>> for MultiMap<K1, K2, V>
 where
     K1: Eq + Hash + Clone,
@@ -77,17 +76,6 @@ where
         }
         m
     }
-}
-
-#[cfg(not(feature = "serde"))]
-#[derive(Eq)]
-pub struct MultiMap<K1, K2, V>
-where
-    K1: Eq + Hash + Clone,
-    K2: Eq + Hash + Clone,
-{
-    value_map: HashMap<K1, (K2, V)>,
-    key_map: HashMap<K2, K1>,
 }
 
 impl<K1, K2, V> MultiMap<K1, K2, V>
@@ -447,7 +435,7 @@ mod test {
 
     #[test]
     fn big_test() {
-        use MultiMap;
+        use super::MultiMap;
 
         let mut map = MultiMap::new();
 
@@ -493,7 +481,7 @@ mod test {
 
     #[test]
     fn into_iter_test() {
-        use MultiMap;
+        use super::MultiMap;
         let mut map = MultiMap::new();
 
         map.insert(1, "One", String::from("Eins"));
@@ -532,7 +520,7 @@ mod test {
     #[cfg(feature = "serde")]
     #[test]
     fn serde_test() {
-        use MultiMap;
+        use super::MultiMap;
         let mut map = MultiMap::new();
 
         map.insert(1, "One", String::from("Eins"));
@@ -560,7 +548,7 @@ mod test {
 
     #[test]
     fn macro_test() {
-        use MultiMap;
+        use super::MultiMap;
 
         let map: MultiMap<i32, &str, String> = MultiMap::new();
 
