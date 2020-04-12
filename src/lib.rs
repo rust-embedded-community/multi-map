@@ -39,19 +39,50 @@
 //! # }
 //! ```
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::borrow::Borrow;
 use std::collections::hash_map;
 use std::collections::HashMap;
 use std::fmt::{self, Debug};
 use std::hash::Hash;
 
+#[cfg_attr(
+    feature = "serde",
+    derive(Deserialize, Serialize),
+    serde(from = "HashMap<K1, (K2, V)>")
+)]
 #[derive(Eq)]
-pub struct MultiMap<K1: Eq + Hash, K2: Eq + Hash, V> {
+pub struct MultiMap<K1, K2, V>
+where
+    K1: Eq + Hash + Clone,
+    K2: Eq + Hash + Clone,
+{
+    #[cfg_attr(feature = "serde", serde(flatten))]
     value_map: HashMap<K1, (K2, V)>,
+    #[cfg_attr(feature = "serde", serde(skip))]
     key_map: HashMap<K2, K1>,
 }
 
-impl<K1: Eq + Hash + Clone, K2: Eq + Hash + Clone, V> MultiMap<K1, K2, V> {
+impl<K1, K2, V> From<HashMap<K1, (K2, V)>> for MultiMap<K1, K2, V>
+where
+    K1: Eq + Hash + Clone,
+    K2: Eq + Hash + Clone,
+{
+    fn from(tuple_map: HashMap<K1, (K2, V)>) -> Self {
+        let mut m = MultiMap::with_capacity(tuple_map.len());
+        for (k1, (k2, v)) in tuple_map {
+            m.insert(k1, k2, v);
+        }
+        m
+    }
+}
+
+impl<K1, K2, V> MultiMap<K1, K2, V>
+where
+    K1: Eq + Hash + Clone,
+    K2: Eq + Hash + Clone,
+{
     /// Creates a new MultiMap. The primary key is of type `K1` and the
     /// secondary key is of type `K2`. The value is of type `V`. This is as
     /// compared to a `std::collections::HashMap` which is typed on just `K` and
@@ -231,13 +262,22 @@ impl<K1: Eq + Hash + Clone, K2: Eq + Hash + Clone, V> MultiMap<K1, K2, V> {
     }
 }
 
-impl<K1: Eq + Hash, K2: Eq + Hash, V: Eq> PartialEq for MultiMap<K1, K2, V> {
+impl<K1, K2, V: Eq> PartialEq for MultiMap<K1, K2, V>
+where
+    K1: Eq + Hash + Clone,
+    K2: Eq + Hash + Clone,
+{
     fn eq(&self, other: &MultiMap<K1, K2, V>) -> bool {
         self.value_map.eq(&other.value_map)
     }
 }
 
-impl<K1: Eq + Hash + Debug, K2: Eq + Hash + Debug, V: Debug> fmt::Debug for MultiMap<K1, K2, V> {
+impl<K1, K2, V> fmt::Debug for MultiMap<K1, K2, V>
+where
+    K1: Eq + Hash + Clone + Debug,
+    K2: Eq + Hash + Clone + Debug,
+    V: Debug,
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_map()
             .entries(
@@ -268,7 +308,7 @@ where
 /// This `struct` is created by the [`iter`] method on [`MultiMap`]. See its
 /// documentation for more.
 ///
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Iter<'a, K1: 'a, K2: 'a, V: 'a> {
     base: hash_map::Iter<'a, K1, (K2, V)>,
 }
@@ -292,9 +332,8 @@ pub struct IntoIter<K1, K2, V> {
 
 impl<K1, K2, V> IntoIterator for MultiMap<K1, K2, V>
 where
-    K1: Eq + Hash + Debug,
-    K2: Eq + Hash + Debug,
-    V: Debug,
+    K1: Eq + Hash + Clone,
+    K2: Eq + Hash + Clone,
 {
     type Item = (K1, (K2, V));
     type IntoIter = IntoIter<K1, K2, V>;
@@ -312,9 +351,8 @@ where
 
 impl<'a, K1, K2, V> IntoIterator for &'a MultiMap<K1, K2, V>
 where
-    K1: Eq + Hash + Debug + Clone,
-    K2: Eq + Hash + Debug + Clone,
-    V: Debug,
+    K1: Eq + Hash + Clone,
+    K2: Eq + Hash + Clone,
 {
     type Item = (&'a K1, &'a (K2, V));
     type IntoIter = Iter<'a, K1, K2, V>;
@@ -397,7 +435,7 @@ mod test {
 
     #[test]
     fn big_test() {
-        use MultiMap;
+        use super::MultiMap;
 
         let mut map = MultiMap::new();
 
@@ -443,7 +481,7 @@ mod test {
 
     #[test]
     fn into_iter_test() {
-        use MultiMap;
+        use super::MultiMap;
         let mut map = MultiMap::new();
 
         map.insert(1, "One", String::from("Eins"));
@@ -479,9 +517,38 @@ mod test {
         )
     }
 
+    #[cfg(feature = "serde")]
+    #[test]
+    fn serde_test() {
+        use super::MultiMap;
+        let mut map = MultiMap::new();
+
+        map.insert(1, "One", String::from("Eins"));
+        map.insert(2, "Two", String::from("Zwei"));
+        map.insert(3, "Three", String::from("Drei"));
+        let serialized = serde_json::to_string(&map).unwrap();
+
+        let deserialized: MultiMap<i32, &str, String> = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(*deserialized.get(&1).unwrap(), String::from("Eins"));
+        assert_eq!(*deserialized.get_alt(&"One").unwrap(), String::from("Eins"));
+
+        assert_eq!(*deserialized.get(&2).unwrap(), String::from("Zwei"));
+        assert_eq!(*deserialized.get_alt(&"Two").unwrap(), String::from("Zwei"));
+
+        assert_eq!(*deserialized.get(&3).unwrap(), String::from("Drei"));
+        assert_eq!(
+            *deserialized.get_alt(&"Three").unwrap(),
+            String::from("Drei")
+        );
+
+        assert_eq!(deserialized.get(&4), None);
+        assert_eq!(deserialized.get_alt(&"Four"), None);
+    }
+
     #[test]
     fn macro_test() {
-        use MultiMap;
+        use super::MultiMap;
 
         let map: MultiMap<i32, &str, String> = MultiMap::new();
 

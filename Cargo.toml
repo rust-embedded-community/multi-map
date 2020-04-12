@@ -11,5 +11,13 @@ license = "MIT"
 repository = "https://github.com/thejpster/multi-map"
 documentation = "https://thejpster.github.io/multi-map/doc/multi_map/index.html"
 homepage = "https://thejpster.github.io/multi-map"
+edition = "2018"
 
-[dependencies]
+[dependencies.serde]
+version = "1.0"
+features = ["derive"]
+optional = true
+
+[dev-dependencies.serde_json]
+version = "1.0"
+
