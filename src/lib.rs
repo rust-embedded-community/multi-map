@@ -260,6 +260,114 @@ where
             base: self.value_map.iter(),
         }
     }
+
+    /// Returns the number of elements the map can hold without reallocating.
+    ///
+    /// This number is a lower bound; the collection might be able to hold
+    /// more, but is guaranteed to be able to hold at least this many.
+    #[inline]
+    pub fn capacity(&self) -> usize {
+        std::cmp::min(self.value_map.capacity(), self.key_map.capacity())
+    }
+
+    /// Clears the map, removing all key-value pairs, just like `HashMap::clear`.
+    /// Keeps the allocated memory for reuse.
+    pub fn clear(&mut self) {
+        self.value_map.clear();
+        self.key_map.clear();
+    }
+
+    /// Clears the map, returning an iterator over the primary key and the
+    /// secondary key + value tuple. Keeps the allocated memory for reuse.
+    ///
+    /// There's no `drain_alt` providing an iterator over secondary key and value,
+    /// but you can map the iterator as follows:
+    /// ```
+    /// use multi_map::MultiMap;
+    ///
+    /// let mut a = MultiMap::new();
+    /// a.insert("apple", 1, "a");
+    /// a.insert("banana", 2, "b");
+    ///
+    /// for (k, v) in a.drain().map(|(k1, (k2, v))| (k2, v)).take(1) {
+    ///     assert!(k == 1 || k == 2);
+    ///     assert!(v == "a" || v == "b");
+    /// }
+    ///
+    /// assert!(a.is_empty());
+    /// ```
+    pub fn drain(&mut self) -> hash_map::Drain<'_, K1, (K2, V)> {
+        self.key_map.clear();
+        self.value_map.drain()
+    }
+
+    /// Returns `true` if the map contains no elements.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.key_map.is_empty() && self.value_map.is_empty()
+    }
+
+    /// Removes an entry from the map given a primary key, returning the stored
+    /// keys and value if the key was previously in the map.
+    ///
+    /// The key may be any borrowed form of the map's key type, but
+    /// [`Hash`] and [`Eq`] on the borrowed form *must* match those for
+    /// the key type.
+    #[inline]
+    pub fn remove_entry<Q: ?Sized>(&mut self, k: &Q) -> Option<(K1, K2, V)>
+    where
+        K1: Borrow<Q>,
+        Q: Hash + Eq,
+    {
+        if let Some((k1, (k2, v))) = self.value_map.remove_entry(k) {
+            self.key_map.remove(&k2).expect("Internally inconsistent key_map");
+            Some((k1, k2, v))
+        } else {
+            None
+        }
+    }
+
+    /// Removes an entry from the map given a secondary key, returning the stored
+    /// keys and value if the key was previously in the map.
+    ///
+    /// The key may be any borrowed form of the map's key type, but
+    /// [`Hash`] and [`Eq`] on the borrowed form *must* match those for
+    /// the key type.
+    #[inline]
+    pub fn remove_entry_alt<Q: ?Sized>(&mut self, k: &Q) -> Option<(K1, K2, V)>
+    where
+        K2: Borrow<Q>,
+        Q: Hash + Eq,
+    {
+        if let Some(k1) = self.key_map.remove(k) {
+            self.value_map.remove_entry(&k1).map(|(k1, (k2, v))| (k1, k2, v))
+        } else {
+            None
+        }
+    }
+
+    /// Reserves capacity for at least `additional` more elements to be inserted
+    /// in the `MultiMap`. The collection may reserve more space to avoid
+    /// frequent reallocations.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the new allocation size overflows [`usize`].
+    #[inline]
+    pub fn reserve(&mut self, additional: usize) {
+        self.value_map.reserve(additional);
+        self.key_map.reserve(additional);
+    }
+
+    /// Shrinks the capacity of the map as much as possible. It will drop
+    /// down as much as possible while maintaining the internal rules
+    /// and possibly leaving some space in accordance with the resize policy.
+    #[inline]
+    pub fn shrink_to_fit(&mut self) {
+        self.value_map.shrink_to_fit();
+        self.key_map.shrink_to_fit();
+    }
+
 }
 
 impl<K1, K2, V: Eq> PartialEq for MultiMap<K1, K2, V>
