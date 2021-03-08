@@ -632,34 +632,34 @@ mod test {
         map.insert(2, "Two", String::from("Zwei"));
         map.insert(3, "Three", String::from("Drei"));
 
-        assert!(*map.get(&1).unwrap() == String::from("Ein"));
-        assert!(*map.get(&2).unwrap() == String::from("Zwei"));
-        assert!(*map.get(&3).unwrap() == String::from("Drei"));
+        assert!(*map.get(&1).unwrap() == "Ein");
+        assert!(*map.get(&2).unwrap() == "Zwei");
+        assert!(*map.get(&3).unwrap() == "Drei");
         assert!(map.contains_key(&1));
         assert!(!map.contains_key(&4));
         assert!(map.contains_key_alt(&"One"));
         assert!(!map.contains_key_alt(&"Four"));
 
-        map.get_mut_alt(&"One").unwrap().push_str("s");
+        map.get_mut_alt(&"One").unwrap().push('s');
 
-        assert!(*map.get_alt(&"One").unwrap() == String::from("Eins"));
-        assert!(*map.get_alt(&"Two").unwrap() == String::from("Zwei"));
-        assert!(*map.get_alt(&"Three").unwrap() == String::from("Drei"));
+        assert!(*map.get_alt(&"One").unwrap() == "Eins");
+        assert!(*map.get_alt(&"Two").unwrap() == "Zwei");
+        assert!(*map.get_alt(&"Three").unwrap() == "Drei");
 
         map.remove(&3);
 
-        assert!(*map.get_alt(&"One").unwrap() == String::from("Eins"));
-        assert!(*map.get_alt(&"Two").unwrap() == String::from("Zwei"));
+        assert!(*map.get_alt(&"One").unwrap() == "Eins");
+        assert!(*map.get_alt(&"Two").unwrap() == "Zwei");
         assert!(map.get_alt(&"Three") == None);
         assert!(map.get(&3) == None);
 
         assert!(map.remove_alt(&"Three") == None);
-        assert!(*map.remove_alt(&"One").unwrap() == String::from("Eins"));
+        assert!(map.remove_alt(&"One").unwrap() == "Eins");
 
-        map.get_mut(&2).unwrap().push_str("!");
+        map.get_mut(&2).unwrap().push('!');
 
         assert!(map.get(&1) == None);
-        assert!(*map.get(&2).unwrap() == String::from("Zwei!"));
+        assert!(*map.get(&2).unwrap() == "Zwei!");
         assert!(map.get_alt(&"Three") == None);
         assert!(map.get(&3) == None);
     }
