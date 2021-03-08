@@ -265,13 +265,46 @@ where
     ///
     /// This number is a lower bound; the collection might be able to hold
     /// more, but is guaranteed to be able to hold at least this many.
+    ///
+    /// ```
+    /// # use multi_map::MultiMap;
+    /// let map = MultiMap::<i32, &str, &str>::with_capacity(16);
+    ///
+    /// assert!(map.capacity() >= 16);
+    /// ```
     #[inline]
     pub fn capacity(&self) -> usize {
         std::cmp::min(self.value_map.capacity(), self.key_map.capacity())
     }
 
+    /// Returns the number of elements in the map.
+    ///
+    /// ```
+    /// # use multi_map::{MultiMap, multimap};
+    /// let map = multimap![
+    ///    1, "Breakfast" => "Pancakes",
+    ///    2, "Lunch" => "Sandwich",
+    /// ];
+    /// assert_eq!(map.len(), 2);
+    /// ```
+    #[inline]
+    pub fn len(&self) -> usize {
+        std::cmp::max(self.value_map.len(), self.key_map.len())
+    }
+
     /// Clears the map, removing all key-value pairs, just like `HashMap::clear`.
+    ///
     /// Keeps the allocated memory for reuse.
+    ///
+    /// ```
+    /// # use multi_map::{MultiMap, multimap};
+    /// let mut map = multimap![
+    ///    1, "Breakfast" => "Pancakes",
+    ///    2, "Lunch" => "Sandwich",
+    /// ];
+    /// map.clear();
+    /// assert_eq!(map.len(), 0);
+    /// ```
     pub fn clear(&mut self) {
         self.value_map.clear();
         self.key_map.clear();
@@ -302,6 +335,12 @@ where
     }
 
     /// Returns `true` if the map contains no elements.
+    ///
+    /// ```
+    /// # use multi_map::MultiMap;
+    /// let map = MultiMap::<i32, &str, &str>::new();
+    /// assert!(map.is_empty());
+    /// ```
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.key_map.is_empty() && self.value_map.is_empty()
@@ -313,6 +352,18 @@ where
     /// The key may be any borrowed form of the map's key type, but
     /// [`Hash`] and [`Eq`] on the borrowed form *must* match those for
     /// the key type.
+    ///
+    /// ```
+    /// # use multi_map::{MultiMap, multimap};
+    /// let mut map = multimap![
+    ///    1, "Breakfast" => "Pancakes",
+    ///    2, "Lunch" => "Sandwich",
+    /// ];
+    /// let item = map.remove_entry(&1);
+    ///
+    /// assert_eq!(map.len(), 1);
+    /// assert_eq!(item, Some((1, "Breakfast", "Pancakes")));
+    /// ```
     #[inline]
     pub fn remove_entry<Q: ?Sized>(&mut self, k: &Q) -> Option<(K1, K2, V)>
     where
@@ -333,6 +384,18 @@ where
     /// The key may be any borrowed form of the map's key type, but
     /// [`Hash`] and [`Eq`] on the borrowed form *must* match those for
     /// the key type.
+    ///
+    /// ```
+    /// # use multi_map::{MultiMap, multimap};
+    /// let mut map = multimap![
+    ///    1, "Breakfast" => "Pancakes",
+    ///    2, "Lunch" => "Sandwich",
+    /// ];
+    /// let item = map.remove_entry_alt("Lunch");
+    ///
+    /// assert_eq!(map.len(), 1);
+    /// assert_eq!(item, Some((2, "Lunch", "Sandwich")));
+    /// ```
     #[inline]
     pub fn remove_entry_alt<Q: ?Sized>(&mut self, k: &Q) -> Option<(K1, K2, V)>
     where
@@ -353,6 +416,13 @@ where
     /// # Panics
     ///
     /// Panics if the new allocation size overflows [`usize`].
+    ///
+    /// ```
+    /// # use multi_map::MultiMap;
+    /// let mut map = MultiMap::<i32, &str, &str>::new();
+    /// map.reserve(16);
+    /// assert!(map.capacity() >= 16);
+    /// ```
     #[inline]
     pub fn reserve(&mut self, additional: usize) {
         self.value_map.reserve(additional);
@@ -362,6 +432,17 @@ where
     /// Shrinks the capacity of the map as much as possible. It will drop
     /// down as much as possible while maintaining the internal rules
     /// and possibly leaving some space in accordance with the resize policy.
+    ///
+    /// Note that in the general case the capacity is not *guaranteed* to shrink,
+    /// but a zero-length MultiMap should generally shrink to capacity zero.
+    /// ```
+    /// # use multi_map::MultiMap;
+    /// let mut map = MultiMap::<i32, &str, &str>::with_capacity(16);
+    /// // This isn't guaranteed to be exactly 16
+    /// let capacity = map.capacity();
+    /// map.shrink_to_fit();
+    /// assert!(map.capacity() < capacity);
+    /// ```
     #[inline]
     pub fn shrink_to_fit(&mut self) {
         self.value_map.shrink_to_fit();
@@ -413,7 +494,7 @@ where
 /// values of the form (K2, V) instead of V.
 ///
 ///
-/// This `struct` is created by the [`iter`] method on [`MultiMap`]. See its
+/// This `struct` is created by the [`iter`](`MultiMap::iter`) method on [`MultiMap`]. See its
 /// documentation for more.
 ///
 #[derive(Clone)]
@@ -423,8 +504,8 @@ pub struct Iter<'a, K1: 'a, K2: 'a, V: 'a> {
 
 /// An owning iterator over the entries of a `MultiMap`.
 ///
-/// This `struct` is created by the [`into_iter`] method on [`MultiMap`]
-/// (provided by the `IntoIterator` trait). See its documentation for more.
+/// This `struct` is created by the [`into_iter`](`IntoIterator::into_iter`) method on [`MultiMap`]
+/// (provided by the [`IntoIterator`] trait). See its documentation for more.
 ///
 pub struct IntoIter<K1, K2, V> {
     base: hash_map::IntoIter<K1, (K2, V)>,
