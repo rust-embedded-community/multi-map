@@ -5,7 +5,7 @@
 //!
 //! The keys have two distinct types - `K1` and `K2` - which may be the same.
 //! Accessing on the primary `K1` key is via the usual `get`, `get_mut` and
-//! `remove_alt` methods, while accessing via the secondary `K2` key is via new
+//! `remove` methods, while accessing via the secondary `K2` key is via new
 //! `get_alt`, `get_mut_alt` and `remove_alt` methods. The value is of type `V`.
 //!
 //! Internally, two `HashMap`s are created - a main one on `<K1, (K2,
