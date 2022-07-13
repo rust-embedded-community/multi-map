@@ -304,6 +304,15 @@ where
         }
     }
 
+    /// Iterate with mutability through all the values in the MultiMap in random order.
+    /// Note that the values
+    /// are `(K2, V)` tuples, not `V`, as you would get with a HashMap.
+    pub fn iter_mut(&mut self) -> IterMut<'_, K1, K2, V> {
+        IterMut {
+            base: self.value_map.iter_mut(),
+        }
+    }
+
     /// Returns the number of elements the map can hold without reallocating.
     ///
     /// This number is a lower bound; the collection might be able to hold
@@ -553,6 +562,15 @@ pub struct Iter<'a, K1: 'a, K2: 'a, V: 'a> {
 pub struct IntoIter<K1, K2, V> {
     base: hash_map::IntoIter<K1, (K2, V)>,
 }
+
+/// An mutable iterator over the entries of a `MultiMap`.
+///
+/// This `struct` is created by the [`iter_mut`](`IntoIterator::iter_mut`) method on [`MultiMap`]
+/// (provided by the [`IterMut`] trait). See its documentation for more.
+///
+pub struct IterMut<'a, K1: 'a, K2: 'a, V: 'a> {
+    base: hash_map::IterMut<'a, K1, (K2, V)>,
+}
 // TODO: `HashMap` also implements this, do we need this as well?
 // impl<K, V> IntoIter<K, V> {
 //     /// Returns a iterator of references over the remaining items.
@@ -594,6 +612,20 @@ where
     }
 }
 
+impl<'a, K1, K2, V> IntoIterator for &'a mut MultiMap<K1, K2, V>
+where
+    K1: Eq + Hash + Clone,
+    K2: Eq + Hash + Clone,
+{
+    type Item = (&'a K1, (&'a K2, &'a mut V));
+    type IntoIter = IterMut<'a, K1, K2, V>;
+
+    // Creates a mutable iterator on MultiMap's values.
+    fn into_iter(self) -> IterMut<'a, K1, K2, V> {
+        self.iter_mut()
+    }
+}
+
 impl<'a, K1, K2, V> Iterator for Iter<'a, K1, K2, V> {
     type Item = (&'a K1, &'a (K2, V));
 
@@ -612,6 +644,19 @@ impl<K1, K2, V> Iterator for IntoIter<K1, K2, V> {
     #[inline]
     fn next(&mut self) -> Option<(K1, (K2, V))> {
         self.base.next()
+    }
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.base.size_hint()
+    }
+}
+
+impl<'a, K1, K2, V> Iterator for IterMut<'a, K1, K2, V> {
+    type Item = (&'a K1, (&'a K2, &'a mut V));
+
+    #[inline]
+    fn next(&mut self) -> Option<(&'a K1, (&'a K2, &'a mut V))> {
+        self.base.next().map(|v| (v.0, (&v.1.0, &mut v.1.1)))
     }
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
